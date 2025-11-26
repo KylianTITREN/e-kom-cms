@@ -1,0 +1,56 @@
+{
+  "kind": "collectionType",
+  "collectionName": "merchants",
+  "info": {
+    "singularName": "merchant",
+    "pluralName": "merchants",
+    "displayName": "Commerçants"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "email"
+    },
+    "logo": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "client": {
+      "type": "string"
+    },
+    "stripe_secret_key": {
+      "type": "string",
+      "private": true
+    },
+    "products": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::product.product",
+      "mappedBy": "merchant"
+    },
+    "news": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::news-article.news-article",
+      "mappedBy": "merchant"
+    },
+    "legalPages": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::legal-page.legal-page",
+      "mappedBy": "merchant"
+    }
+  }
+}
