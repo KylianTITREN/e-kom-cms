@@ -51,6 +51,12 @@
       "relation": "oneToMany",
       "target": "api::legal-page.legal-page",
       "mappedBy": "merchant"
+    },
+    "homepage_contents": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::homepage-content.homepage-content",
+      "mappedBy": "merchant"
     }
   }
 }

@@ -467,6 +467,51 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiHomepageContentHomepageContent
+  extends Struct.SingleTypeSchema {
+  collectionName: 'homepage_contents';
+  info: {
+    description: "Contenu \u00E9ditable de la page d'accueil";
+    displayName: 'Homepage Content';
+    pluralName: 'homepage-contents';
+    singularName: 'homepage-content';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    featuredSectionTitle: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Produits en vedette'>;
+    heroButtonText: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Voir les produits'>;
+    heroSubtitle: Schema.Attribute.Text &
+      Schema.Attribute.DefaultTo<"Des lames d'exception pour les passionn\u00E9s et les professionnels">;
+    heroTitle: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'D\u00E9couvrez notre collection de couteaux professionnels'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::homepage-content.homepage-content'
+    > &
+      Schema.Attribute.Private;
+    merchant: Schema.Attribute.Relation<'manyToOne', 'api::merchant.merchant'>;
+    newsSectionTitle: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Derni\u00E8res actualit\u00E9s'>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    welcomeText: Schema.Attribute.RichText &
+      Schema.Attribute.DefaultTo<'D\u00E9couvrez notre s\u00E9lection de couteaux de qualit\u00E9 professionnelle.'>;
+    welcomeTitle: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'Bienvenue chez E-Kom'>;
+  };
+}
+
 export interface ApiLegalPageLegalPage extends Struct.CollectionTypeSchema {
   collectionName: 'legal_pages';
   info: {
@@ -516,6 +561,10 @@ export interface ApiMerchantMerchant extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     email: Schema.Attribute.Email;
+    homepage_contents: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::homepage-content.homepage-content'
+    >;
     legalPages: Schema.Attribute.Relation<
       'oneToMany',
       'api::legal-page.legal-page'
@@ -1127,6 +1176,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::homepage-content.homepage-content': ApiHomepageContentHomepageContent;
       'api::legal-page.legal-page': ApiLegalPageLegalPage;
       'api::merchant.merchant': ApiMerchantMerchant;
       'api::news-article.news-article': ApiNewsArticleNewsArticle;
