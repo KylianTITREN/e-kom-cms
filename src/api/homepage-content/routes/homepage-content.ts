@@ -4,9 +4,11 @@ export default {
       method: 'GET',
       path: '/homepage-content',
       handler: 'homepage-content.find',
-      config: {
-        auth: false,
-      },
+    },
+    {
+      method: 'GET',
+      path: '/homepage-content/:id',
+      handler: 'homepage-content.findOne',
     },
   ],
 };

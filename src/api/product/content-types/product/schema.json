@@ -44,14 +44,29 @@
       "type": "boolean",
       "default": false
     },
-    "category": {
+    "stripeProductId": {
       "type": "string"
     },
-    "subCategory": {
+    "stripePriceId": {
       "type": "string"
     },
     "brand": {
-      "type": "string"
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::brand.brand",
+      "inversedBy": "products"
+    },
+    "subCategory": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::subcategory.subcategory",
+      "inversedBy": "products"
+    },
+    "category": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::category.category",
+      "inversedBy": "products"
     }
   }
 }

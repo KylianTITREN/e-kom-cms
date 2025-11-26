@@ -1,51 +1,51 @@
 {
-    "kind": "singleType",
-    "collectionName": "homepage_contents",
-    "info": {
-        "singularName": "homepage-content",
-        "pluralName": "homepage-contents",
-        "displayName": "Homepage Content",
-        "description": "Contenu éditable de la page d'accueil"
+  "kind": "collectionType",
+  "collectionName": "homepage_contents",
+  "info": {
+    "singularName": "homepage-content",
+    "pluralName": "homepage-contents",
+    "displayName": "Page d'accueil",
+    "description": "Contenu éditable de la page d'accueil"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "heroTitle": {
+      "type": "string",
+      "default": "Découvrez notre collection de couteaux professionnels",
+      "required": true
     },
-    "options": {
-        "draftAndPublish": false
+    "heroSubtitle": {
+      "type": "text",
+      "default": "Des lames d'exception pour les passionnés et les professionnels"
     },
-    "pluginOptions": {},
-    "attributes": {
-        "heroTitle": {
-            "type": "string",
-            "required": true,
-            "default": "Découvrez notre collection de couteaux professionnels"
-        },
-        "heroSubtitle": {
-            "type": "text",
-            "default": "Des lames d'exception pour les passionnés et les professionnels"
-        },
-        "heroButtonText": {
-            "type": "string",
-            "default": "Voir les produits"
-        },
-        "welcomeTitle": {
-            "type": "string",
-            "default": "Bienvenue chez E-Kom"
-        },
-        "welcomeText": {
-            "type": "richtext",
-            "default": "Découvrez notre sélection de couteaux de qualité professionnelle."
-        },
-        "featuredSectionTitle": {
-            "type": "string",
-            "default": "Produits en vedette"
-        },
-        "newsSectionTitle": {
-            "type": "string",
-            "default": "Dernières actualités"
-        },
-        "merchant": {
-            "type": "relation",
-            "relation": "manyToOne",
-            "target": "api::merchant.merchant",
-            "inversedBy": "homepage_contents"
-        }
+    "heroButtonText": {
+      "type": "string",
+      "default": "Voir les produits"
+    },
+    "welcomeTitle": {
+      "type": "string",
+      "default": "Bienvenue chez E-Kom"
+    },
+    "welcomeText": {
+      "type": "richtext",
+      "default": "Découvrez notre sélection de couteaux de qualité professionnelle."
+    },
+    "featuredSectionTitle": {
+      "type": "string",
+      "default": "Produits en vedette"
+    },
+    "newsSectionTitle": {
+      "type": "string",
+      "default": "Dernières actualités"
+    },
+    "merchant": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::merchant.merchant",
+      "inversedBy": "homepage_contents"
     }
+  }
 }
