@@ -487,7 +487,6 @@ export interface ApiBrandBrand extends Struct.CollectionTypeSchema {
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::brand.brand'> &
       Schema.Attribute.Private;
     logo: Schema.Attribute.Media<'images'>;
-    merchant: Schema.Attribute.Relation<'manyToOne', 'api::merchant.merchant'>;
     name: Schema.Attribute.String & Schema.Attribute.Required;
     products: Schema.Attribute.Relation<'oneToMany', 'api::product.product'>;
     publishedAt: Schema.Attribute.DateTime;
@@ -520,7 +519,6 @@ export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
       'api::category.category'
     > &
       Schema.Attribute.Private;
-    merchant: Schema.Attribute.Relation<'manyToOne', 'api::merchant.merchant'>;
     name: Schema.Attribute.String & Schema.Attribute.Required;
     products: Schema.Attribute.Relation<'oneToMany', 'api::product.product'>;
     publishedAt: Schema.Attribute.DateTime;
@@ -566,7 +564,6 @@ export interface ApiHomepageContentHomepageContent
       'api::homepage-content.homepage-content'
     > &
       Schema.Attribute.Private;
-    merchant: Schema.Attribute.Relation<'manyToOne', 'api::merchant.merchant'>;
     newsSectionTitle: Schema.Attribute.String &
       Schema.Attribute.DefaultTo<'Derni\u00E8res actualit\u00E9s'>;
     publishedAt: Schema.Attribute.DateTime;
@@ -602,7 +599,6 @@ export interface ApiLegalPageLegalPage extends Struct.CollectionTypeSchema {
       'api::legal-page.legal-page'
     > &
       Schema.Attribute.Private;
-    merchant: Schema.Attribute.Relation<'manyToOne', 'api::merchant.merchant'>;
     order: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     publishedAt: Schema.Attribute.DateTime;
     slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
@@ -610,64 +606,6 @@ export interface ApiLegalPageLegalPage extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-  };
-}
-
-export interface ApiMerchantMerchant extends Struct.CollectionTypeSchema {
-  collectionName: 'merchants';
-  info: {
-    displayName: 'Commer\u00E7ants';
-    pluralName: 'merchants';
-    singularName: 'merchant';
-  };
-  options: {
-    draftAndPublish: true;
-  };
-  attributes: {
-    brands: Schema.Attribute.Relation<'oneToMany', 'api::brand.brand'>;
-    categories: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::category.category'
-    >;
-    client: Schema.Attribute.String;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    email: Schema.Attribute.Email;
-    homepage_contents: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::homepage-content.homepage-content'
-    >;
-    legalPages: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::legal-page.legal-page'
-    >;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::merchant.merchant'
-    > &
-      Schema.Attribute.Private;
-    logo: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
-    name: Schema.Attribute.String;
-    news: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::news-article.news-article'
-    >;
-    products: Schema.Attribute.Relation<'oneToMany', 'api::product.product'>;
-    publishedAt: Schema.Attribute.DateTime;
-    stripe_secret_key: Schema.Attribute.String & Schema.Attribute.Private;
-    subcategories: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::subcategory.subcategory'
-    >;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    users: Schema.Attribute.Relation<
-      'oneToMany',
-      'plugin::users-permissions.user'
-    >;
   };
 }
 
@@ -695,7 +633,6 @@ export interface ApiNewsArticleNewsArticle extends Struct.CollectionTypeSchema {
       'api::news-article.news-article'
     > &
       Schema.Attribute.Private;
-    merchant: Schema.Attribute.Relation<'manyToOne', 'api::merchant.merchant'>;
     publishedAt: Schema.Attribute.DateTime;
     publishedDate: Schema.Attribute.DateTime & Schema.Attribute.Required;
     slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
@@ -817,7 +754,6 @@ export interface ApiSubcategorySubcategory extends Struct.CollectionTypeSchema {
       'api::subcategory.subcategory'
     > &
       Schema.Attribute.Private;
-    merchant: Schema.Attribute.Relation<'manyToOne', 'api::merchant.merchant'>;
     name: Schema.Attribute.String & Schema.Attribute.Required;
     products: Schema.Attribute.Relation<'oneToMany', 'api::product.product'>;
     publishedAt: Schema.Attribute.DateTime;
@@ -1283,6 +1219,7 @@ export interface PluginUsersPermissionsUser
   };
   options: {
     draftAndPublish: false;
+    timestamps: true;
   };
   attributes: {
     blocked: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
@@ -1302,7 +1239,6 @@ export interface PluginUsersPermissionsUser
       'plugin::users-permissions.user'
     > &
       Schema.Attribute.Private;
-    merchant: Schema.Attribute.Relation<'manyToOne', 'api::merchant.merchant'>;
     password: Schema.Attribute.Password &
       Schema.Attribute.Private &
       Schema.Attribute.SetMinMaxLength<{
@@ -1343,7 +1279,6 @@ declare module '@strapi/strapi' {
       'api::category.category': ApiCategoryCategory;
       'api::homepage-content.homepage-content': ApiHomepageContentHomepageContent;
       'api::legal-page.legal-page': ApiLegalPageLegalPage;
-      'api::merchant.merchant': ApiMerchantMerchant;
       'api::news-article.news-article': ApiNewsArticleNewsArticle;
       'api::product.product': ApiProductProduct;
       'api::setting.setting': ApiSettingSetting;
