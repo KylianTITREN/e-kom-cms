@@ -40,12 +40,6 @@
     "newsSectionTitle": {
       "type": "string",
       "default": "Dernières actualités"
-    },
-    "merchant": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::merchant.merchant",
-      "inversedBy": "homepage_contents"
     }
   }
 }

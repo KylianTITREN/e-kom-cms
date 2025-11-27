@@ -23,12 +23,6 @@
     "description": {
       "type": "text"
     },
-    "merchant": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::merchant.merchant",
-      "inversedBy": "categories"
-    },
     "subcategories": {
       "type": "relation",
       "relation": "oneToMany",

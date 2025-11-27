@@ -29,12 +29,6 @@
       "target": "api::category.category",
       "inversedBy": "subcategories"
     },
-    "merchant": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::merchant.merchant",
-      "inversedBy": "subcategories"
-    },
     "products": {
       "type": "relation",
       "relation": "oneToMany",

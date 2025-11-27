@@ -734,7 +734,6 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
       'api::product.product'
     > &
       Schema.Attribute.Private;
-    merchant: Schema.Attribute.Relation<'manyToOne', 'api::merchant.merchant'>;
     name: Schema.Attribute.String;
     price: Schema.Attribute.Decimal;
     publishedAt: Schema.Attribute.DateTime;

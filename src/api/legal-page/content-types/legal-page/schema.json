@@ -28,12 +28,6 @@
     "order": {
       "type": "integer",
       "default": 0
-    },
-    "merchant": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::merchant.merchant",
-      "inversedBy": "legalPages"
     }
   }
 }

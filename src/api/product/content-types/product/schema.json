@@ -34,12 +34,6 @@
         "audios"
       ]
     },
-    "merchant": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::merchant.merchant",
-      "inversedBy": "products"
-    },
     "ageRestricted": {
       "type": "boolean",
       "default": false

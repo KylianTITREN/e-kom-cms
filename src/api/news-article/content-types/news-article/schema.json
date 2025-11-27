@@ -40,12 +40,6 @@
     "publishedDate": {
       "type": "datetime",
       "required": true
-    },
-    "merchant": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::merchant.merchant",
-      "inversedBy": "news"
     }
   }
 }

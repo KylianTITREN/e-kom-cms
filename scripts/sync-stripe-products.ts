@@ -15,9 +15,7 @@ async function syncAllProducts() {
 
   try {
     // Récupérer tous les produits
-    const products = await strapi.documents('api::product.product').findMany({
-      populate: ['merchant'],
-    });
+    const products = await strapi.documents('api::product.product').findMany();
 
     console.log(`📦 ${products.length} produits trouvés`);
 
@@ -37,7 +35,6 @@ async function syncAllProducts() {
             : 'Produit disponible sur notre boutique',
           metadata: {
             strapiId: product.documentId || product.id.toString(),
-            merchant: product.merchant?.id?.toString() || '',
           },
         });
 

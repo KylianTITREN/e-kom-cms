@@ -144,7 +144,7 @@ export default {
     }
   },
 
-  // Avant la suppression d'un produit (on récupère le merchant pendant qu'il est encore dispo)
+  // Avant la suppression d'un produit
   async beforeDelete(event) {
     const { params } = event;
 

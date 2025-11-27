@@ -30,12 +30,6 @@
         "images"
       ]
     },
-    "merchant": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::merchant.merchant",
-      "inversedBy": "brands"
-    },
     "products": {
       "type": "relation",
       "relation": "oneToMany",
