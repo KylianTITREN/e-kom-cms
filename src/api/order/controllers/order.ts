@@ -2,22 +2,16 @@ import Stripe from "stripe";
 
 export default {
   async checkout(ctx) {
-    const { items, merchantId } = ctx.request.body;
+    const { items } = ctx.request.body;
 
-    if (!merchantId) {
-      ctx.throw(400, "merchantId manquant");
+    // Récupérer les paramètres globaux pour la clé Stripe
+    const settings = await strapi.documents('api::setting.setting').findFirst();
+
+    if (!settings || !settings.stripeSecretKey) {
+      ctx.throw(400, "Clé Stripe non configurée dans les paramètres");
     }
 
-    // On récupère la clé Stripe du marchand
-    const merchant = await strapi.db.query("api::merchant.merchant").findOne({
-      where: { id: merchantId },
-    });
-
-    if (!merchant || !merchant.stripe_secret_key) {
-      ctx.throw(400, "Clé Stripe introuvable pour ce marchand");
-    }
-
-    const stripe = new Stripe(merchant.stripe_secret_key, {
+    const stripe = new Stripe(settings.stripeSecretKey, {
       apiVersion: '2025-09-30.clover',
     });
 
