@@ -1,39 +1,20 @@
 import Stripe from 'stripe';
 
-// Fonction helper pour obtenir la clé Stripe du merchant
-async function getStripeForProduct(product: any): Promise<Stripe | null> {
+// Fonction helper pour obtenir l'instance Stripe depuis les settings
+async function getStripeInstance(): Promise<Stripe | null> {
   try {
-    // Récupérer le produit complet avec sa relation merchant
-    const fullProduct = await strapi.documents('api::product.product').findOne({
-      documentId: product.documentId,
-      populate: ['merchant'],
-    });
+    const settings = await strapi.documents('api::setting.setting').findFirst();
     
-    if (!fullProduct?.merchant) {
-      console.warn(`⚠️  Pas de merchant pour le produit "${product.name}"`);
+    if (!settings?.stripeSecretKey) {
+      console.error('⚠️  Aucune clé Stripe configurée dans les paramètres');
       return null;
     }
 
-    // Extraire le merchantId
-    const merchantId = typeof fullProduct.merchant === 'object' 
-      ? (fullProduct.merchant.documentId || fullProduct.merchant.id)
-      : fullProduct.merchant;
-
-    // Récupérer le merchant avec sa clé Stripe
-    const merchant = await strapi.documents('api::merchant.merchant').findOne({
-      documentId: String(merchantId),
-    });
-
-    if (!merchant?.stripe_secret_key) {
-      console.warn(`⚠️  Pas de clé Stripe pour le merchant du produit "${product.name}"`);
-      return null;
-    }
-
-    return new Stripe(merchant.stripe_secret_key, {
+    return new Stripe(settings.stripeSecretKey, {
       apiVersion: '2025-09-30.clover',
     });
   } catch (error) {
-    console.error('❌ Erreur lors de la récupération de la clé Stripe:', error);
+    console.error('❌ Erreur lors de la récupération des paramètres Stripe:', error);
     return null;
   }
 }
@@ -50,16 +31,8 @@ export default {
         return;
       }
 
-      const stripe = await getStripeForProduct(result);
+      const stripe = await getStripeInstance();
       if (!stripe) return;
-
-      // Extraire le merchantId pour le stocker dans les métadonnées Stripe
-      let merchantIdForMetadata = null;
-      if (result.merchant) {
-        merchantIdForMetadata = typeof result.merchant === 'object'
-          ? (result.merchant.documentId || result.merchant.id)
-          : result.merchant;
-      }
 
       // Créer le produit dans Stripe
       const stripeProduct = await stripe.products.create({
@@ -71,7 +44,6 @@ export default {
           : 'Produit disponible sur notre boutique',
         metadata: {
           strapiId: result.documentId || result.id.toString(),
-          merchantId: merchantIdForMetadata || '',
         },
       });
 
@@ -125,7 +97,7 @@ export default {
         return;
       }
 
-      const stripe = await getStripeForProduct(result);
+      const stripe = await getStripeInstance();
       if (!stripe) return;
       
       // Mettre à jour le produit Stripe
@@ -181,14 +153,13 @@ export default {
       // Utiliser strapi.db.query car params.where contient l'id numérique, pas le documentId
       const product = await strapi.db.query('api::product.product').findOne({
         where: { id: params.where.id },
-        populate: ['merchant'],
       });
 
       if (!product?.stripeProductId) {
         return;
       }
 
-      const stripe = await getStripeForProduct(product);
+      const stripe = await getStripeInstance();
       if (!stripe) return;
 
       // Archiver le produit dans Stripe (on ne peut pas le supprimer complètement)
