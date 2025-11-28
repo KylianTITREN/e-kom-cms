@@ -674,9 +674,9 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
     name: Schema.Attribute.String & Schema.Attribute.Required;
     price: Schema.Attribute.Decimal & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
-    slug: Schema.Attribute.UID<'name'>;
-    stripePriceId: Schema.Attribute.String;
-    stripeProductId: Schema.Attribute.String;
+    slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
+    stripePriceId: Schema.Attribute.String & Schema.Attribute.Unique;
+    stripeProductId: Schema.Attribute.String & Schema.Attribute.Unique;
     subCategory: Schema.Attribute.Relation<
       'manyToOne',
       'api::subcategory.subcategory'
@@ -721,10 +721,6 @@ export interface ApiSettingSetting extends Struct.SingleTypeSchema {
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'Mon Site'>;
     socialLinks: Schema.Attribute.JSON;
-    stripePublicKey: Schema.Attribute.String & Schema.Attribute.Required;
-    stripeSecretKey: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.Private;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

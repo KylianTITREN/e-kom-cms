@@ -17,7 +17,8 @@
     },
     "slug": {
       "type": "uid",
-      "targetField": "name"
+      "targetField": "name",
+      "required": true
     },
     "description": {
       "type": "blocks"
@@ -41,10 +42,12 @@
       "default": false
     },
     "stripeProductId": {
-      "type": "string"
+      "type": "string",
+      "unique": true
     },
     "stripePriceId": {
-      "type": "string"
+      "type": "string",
+      "unique": true
     },
     "brand": {
       "type": "relation",

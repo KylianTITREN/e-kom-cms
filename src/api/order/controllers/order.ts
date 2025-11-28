@@ -4,14 +4,7 @@ export default {
   async checkout(ctx) {
     const { items } = ctx.request.body;
 
-    // Récupérer les paramètres globaux pour la clé Stripe
-    const settings = await strapi.documents('api::setting.setting').findFirst();
-
-    if (!settings || !settings.stripeSecretKey) {
-      ctx.throw(400, "Clé Stripe non configurée dans les paramètres");
-    }
-
-    const stripe = new Stripe(settings.stripeSecretKey, {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2025-09-30.clover',
     });
 
@@ -19,14 +12,10 @@ export default {
     const line_items = await Promise.all(
       items.map(async (item) => {
         // Essayer de récupérer le produit Strapi pour obtenir le stripePriceId
-        const product = await strapi.documents('api::product.product').findFirst({
-          filters: {
-            $or: [
-              { documentId: item.id },
-              { id: item.id },
-            ],
-          },
-        });
+        const product = await strapi.entityService.findOne(
+          'api::product.product',
+          Number(item.id)
+        );
 
         // Si le produit a un stripePriceId, l'utiliser
         if (product?.stripePriceId) {
@@ -43,8 +32,7 @@ export default {
           price_data: {
             currency: "eur",
             product_data: { 
-              name: item.name,
-              images: item.image ? [item.image] : [],
+              name: item.name
             },
             unit_amount: Math.round(item.price * 100),
           },

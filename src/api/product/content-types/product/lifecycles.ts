@@ -3,14 +3,7 @@ import Stripe from 'stripe';
 // Fonction helper pour obtenir l'instance Stripe depuis les settings
 async function getStripeInstance(): Promise<Stripe | null> {
   try {
-    const settings = await strapi.documents('api::setting.setting').findFirst();
-    
-    if (!settings?.stripeSecretKey) {
-      console.error('⚠️  Aucune clé Stripe configurée dans les paramètres');
-      return null;
-    }
-
-    return new Stripe(settings.stripeSecretKey, {
+    return new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2025-09-30.clover',
     });
   } catch (error) {

@@ -14,8 +14,8 @@
   "attributes": {
     "siteName": {
       "type": "string",
-      "required": true,
-      "default": "Mon Site"
+      "default": "Mon Site",
+      "required": true
     },
     "siteEmail": {
       "type": "email",
@@ -39,15 +39,6 @@
       "allowedTypes": [
         "images"
       ]
-    },
-    "stripeSecretKey": {
-      "type": "string",
-      "required": true,
-      "private": true
-    },
-    "stripePublicKey": {
-      "type": "string",
-      "required": true
     },
     "address": {
       "type": "text"
