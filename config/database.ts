@@ -1,7 +1,7 @@
 
 export default ({ env }) => ({
   connection: {
-    client: 'prostgres',
+    client: 'postgres',
     connectionString: env('DATABASE_URL'),
     ssl: false,
   },
