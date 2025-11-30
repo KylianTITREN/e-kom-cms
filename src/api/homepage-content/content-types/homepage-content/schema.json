@@ -40,6 +40,15 @@
     "newsSectionTitle": {
       "type": "string",
       "default": "Dernières actualités"
+    },
+    "seoTitle": {
+      "type": "string"
+    },
+    "seoDescription": {
+      "type": "text"
+    },
+    "seoKeywords": {
+      "type": "text"
     }
   }
 }

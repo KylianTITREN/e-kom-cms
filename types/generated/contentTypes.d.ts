@@ -567,6 +567,9 @@ export interface ApiHomepageContentHomepageContent
     newsSectionTitle: Schema.Attribute.String &
       Schema.Attribute.DefaultTo<'Derni\u00E8res actualit\u00E9s'>;
     publishedAt: Schema.Attribute.DateTime;
+    seoDescription: Schema.Attribute.Text;
+    seoKeywords: Schema.Attribute.Text;
+    seoTitle: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -601,6 +604,9 @@ export interface ApiLegalPageLegalPage extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     order: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<0>;
     publishedAt: Schema.Attribute.DateTime;
+    seoDescription: Schema.Attribute.Text;
+    seoKeywords: Schema.Attribute.Text;
+    seoTitle: Schema.Attribute.String;
     slug: Schema.Attribute.UID<'title'> & Schema.Attribute.Required;
     title: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
@@ -714,8 +720,6 @@ export interface ApiSettingSetting extends Struct.SingleTypeSchema {
       Schema.Attribute.Private;
     logo: Schema.Attribute.Media<'images'>;
     publishedAt: Schema.Attribute.DateTime;
-    seoDescription: Schema.Attribute.Text;
-    seoTitle: Schema.Attribute.String;
     siteEmail: Schema.Attribute.Email & Schema.Attribute.Required;
     siteName: Schema.Attribute.String &
       Schema.Attribute.Required &

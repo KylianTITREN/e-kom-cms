@@ -28,6 +28,15 @@
     "order": {
       "type": "integer",
       "default": 0
+    },
+    "seoTitle": {
+      "type": "string"
+    },
+    "seoDescription": {
+      "type": "text"
+    },
+    "seoKeywords": {
+      "type": "text"
     }
   }
 }
