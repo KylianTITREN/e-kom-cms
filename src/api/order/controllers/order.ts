@@ -101,6 +101,8 @@ export default {
         shipping_address_collection: {
           allowed_countries: ["FR", "BE", "CH", "LU", "MC"],
         },
+        // Codes promo activés
+        allow_promotion_codes: true,
         // Langue et devise
         locale: "fr",
         currency: "eur",
