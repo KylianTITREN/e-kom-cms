@@ -44,7 +44,16 @@ async function getImageUrl(productId: number): Promise<string | undefined> {
     });
 
     const imageUrl = product?.images?.[0]?.url;
-    return imageUrl ? `${STRAPI_URL}${imageUrl}` : undefined;
+
+    if (!imageUrl) return undefined;
+
+    // Si l'URL est déjà complète (Cloudinary), la retourner telle quelle
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+
+    // Sinon, c'est une URL locale Strapi, ajouter le préfixe
+    return `${STRAPI_URL}${imageUrl}`;
   } catch (error) {
     console.warn('⚠️  Erreur récupération image:', error);
     return undefined;
@@ -213,8 +222,21 @@ export default {
         where: { id: params.where.id },
       });
 
+      if (!product) {
+        console.log(`⏭️  Produit introuvable - skip beforeDelete`);
+        return;
+      }
+
+      // Skip si le produit n'a pas de stripeProductId
       if (!product?.stripeProductId) {
-        console.log(`⏭️  Produit sans ID Stripe - skip beforeDelete`);
+        console.log(`⏭️  Produit "${product.name}" sans ID Stripe - skip beforeDelete`);
+        return;
+      }
+
+      // IMPORTANT: Ne pas archiver si c'est juste un changement de version (publish)
+      // On détecte ça par le fait qu'il y a un publishedAt existant
+      if (product.publishedAt) {
+        console.log(`⏭️  Produit "${product.name}" publié - probablement un re-publish - skip beforeDelete`);
         return;
       }
 
