@@ -9,10 +9,9 @@ export default {
    */
   register({ strapi }: { strapi: Core.Strapi }) {
     // Middleware pour conserver le body brut pour les webhooks Stripe
-    // Doit être enregistré AVANT les middlewares de parsing du body
     strapi.server.use(async (ctx, next) => {
       if (ctx.request.url === '/api/webhook/stripe' && ctx.request.method === 'POST') {
-        // Capturer le body brut avant que Koa ne le parse
+        // Capturer le body brut AVANT que les autres middlewares ne le parsent
         const chunks: Buffer[] = [];
 
         // Lire le stream complet
@@ -22,13 +21,21 @@ export default {
 
         const rawBody = Buffer.concat(chunks).toString('utf8');
 
-        // Stocker le body brut dans un symbole pour éviter les conflits
-        if (!ctx.request.body) {
+        // Parser manuellement le JSON pour ctx.request.body
+        try {
+          ctx.request.body = JSON.parse(rawBody);
+        } catch (e) {
           ctx.request.body = {};
         }
+
+        // Stocker AUSSI le body brut dans un symbole pour la vérification de signature
         ctx.request.body[Symbol.for('unparsedBody')] = rawBody;
 
-        console.log('✅ Body brut capturé pour webhook Stripe');
+        console.log('✅ Body brut capturé pour webhook Stripe:', rawBody.substring(0, 100) + '...');
+
+        // Appeler next() pour continuer, mais le body est déjà parsé donc koa-body ne fera rien
+        await next();
+        return;
       }
 
       await next();
