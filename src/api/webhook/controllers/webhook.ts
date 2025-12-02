@@ -61,13 +61,15 @@ export default {
       try {
         // Récupérer les détails complets de la session avec les line_items
         const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
-          expand: ["line_items.data.price.product"],
+          expand: ["line_items.data.price.product", "shipping_cost"],
         });
 
         const lineItems = fullSession.line_items?.data || [];
         const customerEmail = fullSession.customer_details?.email;
         const customerName = fullSession.customer_details?.name || "Client";
-        const shippingAddress = fullSession.shipping_details?.address;
+
+        // Récupérer l'adresse de livraison depuis customer_details
+        const shippingAddress = fullSession.customer_details?.address;
 
         if (!customerEmail) {
           console.error("❌ Email client manquant dans la session");
