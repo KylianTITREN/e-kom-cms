@@ -50,9 +50,13 @@ export const emailService = {
 
       const emailHtml = generateOrderConfirmationHtml(data);
 
+      // Email de réponse (reply-to) - utilisez votre email de support
+      const replyToEmail = process.env.EMAIL_REPLY_TO || process.env.EMAIL_FROM || "support@votre-domaine.com";
+
       const result = await resend.emails.send({
         from: fromFormatted,
         to: data.customerEmail,
+        replyTo: replyToEmail, // Quand le client répond, ça ira à votre email de support
         subject: `Confirmation de commande #${data.orderNumber}`,
         html: emailHtml,
       });
@@ -144,7 +148,7 @@ function generateOrderConfirmationHtml(data: OrderConfirmationData): string {
                       Bonjour ${data.customerName},
                     </p>
                     <p style="margin: 0 0 30px 0; color: #34495e; font-size: 15px; line-height: 1.7;">
-                      Merci pour votre commande ! Nous avons bien reçu votre paiement et votre commande est en cours de traitement. Vous recevrez un email de confirmation d'expédition dès que votre colis sera envoyé.
+                      Merci pour votre commande ! Nous avons bien reçu votre paiement et votre commande est en cours de traitement.
                     </p>
 
                     <!-- Récapitulatif de la commande -->

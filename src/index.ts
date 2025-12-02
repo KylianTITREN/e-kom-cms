@@ -99,7 +99,13 @@ export default {
             }));
 
             const total = parseFloat((fullSession.amount_total! / 100).toFixed(2));
-            const orderNumber = session.id; // Utiliser l'ID de session Stripe comme numéro de commande
+
+            // Générer un numéro de commande court et lisible
+            // Format: CMD-YYYYMMDD-XXXXX (ex: CMD-20251202-A3F9E)
+            const date = new Date();
+            const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
+            const randomStr = session.id.slice(-5).toUpperCase(); // Prendre les 5 derniers caractères de l'ID Stripe
+            const orderNumber = `CMD-${dateStr}-${randomStr}`;
 
             // Envoyer l'email de confirmation
             await emailService.sendOrderConfirmation({
