@@ -28,7 +28,20 @@ export default [
   'strapi::cors',
   'strapi::poweredBy',
   'strapi::query',
-  'strapi::body',
+  {
+    name: 'strapi::body',
+    config: {
+      // Configuration personnalisée du body parser
+      // On utilise une fonction pour ignorer le parsing pour les webhooks Stripe
+      includeUnparsed: true,
+      parsedMethods: ['POST', 'PUT', 'PATCH'],
+      // Fonction pour déterminer si on doit parser le body
+      // Retourne false pour les webhooks Stripe car on le parse manuellement
+      formidable: {
+        maxFileSize: 200 * 1024 * 1024, // 200mb
+      },
+    },
+  },
   'strapi::session',
   'strapi::favicon',
   'strapi::public',

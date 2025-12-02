@@ -1,4 +1,21 @@
 import type { Core } from '@strapi/strapi';
+import Stripe from 'stripe';
+import { emailService } from './services/email';
+
+// Singleton Stripe
+let stripeInstance: Stripe | null = null;
+
+const getStripe = (): Stripe => {
+  if (!stripeInstance) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("STRIPE_SECRET_KEY manquante dans .env");
+    }
+    stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2025-09-30.clover",
+    });
+  }
+  return stripeInstance;
+};
 
 export default {
   /**
@@ -8,34 +25,116 @@ export default {
    * This gives you an opportunity to extend code.
    */
   register({ strapi }: { strapi: Core.Strapi }) {
-    // Middleware pour conserver le body brut pour les webhooks Stripe
+    // Middleware pour gérer les webhooks Stripe DIRECTEMENT
+    // sans passer par koa-body qui ne peut pas gérer le body brut
     strapi.server.use(async (ctx, next) => {
       if (ctx.request.url === '/api/webhook/stripe' && ctx.request.method === 'POST') {
-        // Capturer le body brut AVANT que les autres middlewares ne le parsent
-        const chunks: Buffer[] = [];
+        const stripe = getStripe();
+        const sig = ctx.request.headers["stripe-signature"];
+        const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-        // Lire le stream complet
+        if (!webhookSecret) {
+          console.error("❌ STRIPE_WEBHOOK_SECRET manquante dans .env");
+          ctx.status = 500;
+          ctx.body = { error: "Configuration serveur manquante" };
+          return; // Ne pas appeler next(), on traite directement la requête
+        }
+
+        if (!sig) {
+          console.error("❌ Signature Stripe manquante");
+          ctx.status = 400;
+          ctx.body = { error: "Signature manquante" };
+          return;
+        }
+
+        // Lire le body brut
+        const chunks: Buffer[] = [];
         for await (const chunk of ctx.req) {
           chunks.push(chunk);
         }
-
         const rawBody = Buffer.concat(chunks).toString('utf8');
 
-        // Parser manuellement le JSON pour ctx.request.body
+        console.log('✅ Body brut capturé pour webhook Stripe');
+
+        // Vérifier la signature
+        let event: Stripe.Event;
         try {
-          ctx.request.body = JSON.parse(rawBody);
-        } catch (e) {
-          ctx.request.body = {};
+          event = stripe.webhooks.constructEvent(rawBody, sig as string, webhookSecret);
+        } catch (err: any) {
+          console.error("❌ Erreur de signature webhook:", err.message);
+          ctx.status = 400;
+          ctx.body = { error: `Webhook Error: ${err.message}` };
+          return;
         }
 
-        // Stocker AUSSI le body brut dans un symbole pour la vérification de signature
-        ctx.request.body[Symbol.for('unparsedBody')] = rawBody;
+        console.log(`📥 Webhook reçu: ${event.type}`);
 
-        console.log('✅ Body brut capturé pour webhook Stripe:', rawBody.substring(0, 100) + '...');
+        // Gérer l'événement checkout.session.completed
+        if (event.type === "checkout.session.completed") {
+          const session = event.data.object as Stripe.Checkout.Session;
 
-        // Appeler next() pour continuer, mais le body est déjà parsé donc koa-body ne fera rien
-        await next();
-        return;
+          try {
+            // Récupérer les détails de la session avec les line_items
+            const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+              expand: ["line_items", "line_items.data.price.product"],
+            });
+
+            const customerEmail = fullSession.customer_details?.email;
+            const customerName = fullSession.customer_details?.name || "Client";
+            const lineItems = fullSession.line_items?.data || [];
+            const shippingAddress = (fullSession as any).shipping_details?.address;
+
+            if (!customerEmail) {
+              console.error("❌ Email client manquant");
+              ctx.status = 400;
+              ctx.body = { error: "Email client manquant" };
+              return;
+            }
+
+            // Préparer les données pour l'email
+            const items = lineItems.map((item: any) => ({
+              name: item.description || "Produit",
+              quantity: item.quantity || 1,
+              price: parseFloat((item.amount_total / 100).toFixed(2)),
+            }));
+
+            const total = parseFloat((fullSession.amount_total! / 100).toFixed(2));
+            const orderNumber = session.id; // Utiliser l'ID de session Stripe comme numéro de commande
+
+            // Envoyer l'email de confirmation
+            await emailService.sendOrderConfirmation({
+              customerEmail,
+              customerName,
+              orderNumber,
+              items,
+              total,
+              shippingAddress: shippingAddress ? {
+                line1: shippingAddress.line1 || "",
+                line2: shippingAddress.line2 || "",
+                city: shippingAddress.city || "",
+                postal_code: shippingAddress.postal_code || "",
+                country: shippingAddress.country || "",
+              } : undefined,
+            });
+
+            console.log(`✅ Webhook Stripe reçu avec succès`);
+            console.log(`📧 Email de confirmation envoyé à: ${customerEmail}`);
+
+            ctx.status = 200;
+            ctx.body = { received: true };
+            return; // Ne pas appeler next()
+          } catch (error: any) {
+            console.error("❌ Erreur lors du traitement du webhook:", error);
+            ctx.status = 500;
+            ctx.body = { error: "Erreur lors du traitement" };
+            return;
+          }
+        }
+
+        // Pour les autres types d'événements, retourner 200
+        ctx.status = 200;
+        ctx.body = { received: true };
+        return; // Ne pas appeler next()
       }
 
       await next();
