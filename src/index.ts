@@ -107,7 +107,29 @@ export default {
             const randomStr = session.id.slice(-5).toUpperCase(); // Prendre les 5 derniers caractères de l'ID Stripe
             const orderNumber = `CMD-${dateStr}-${randomStr}`;
 
-            // Envoyer l'email de confirmation
+            // Récupérer la facture générée automatiquement par Stripe
+            let invoiceUrl: string | undefined;
+            try {
+              // L'invoice est créée automatiquement grâce à invoice_creation dans la session
+              // On la récupère via la session
+              const sessionWithInvoice = await stripe.checkout.sessions.retrieve(session.id, {
+                expand: ["invoice"],
+              });
+
+              if (sessionWithInvoice.invoice) {
+                const invoice = sessionWithInvoice.invoice as any;
+                // URL pour télécharger le PDF de la facture
+                invoiceUrl = invoice.invoice_pdf;
+                console.log(`📄 Facture trouvée: ${invoice.id}`);
+              } else {
+                console.warn("⚠️  Aucune facture trouvée pour cette session");
+              }
+            } catch (error: any) {
+              console.error("❌ Erreur lors de la récupération de la facture:", error.message);
+              // Continuer même si la facture n'est pas disponible
+            }
+
+            // Envoyer l'email de confirmation avec la facture en pièce jointe
             await emailService.sendOrderConfirmation({
               customerEmail,
               customerName,
@@ -121,6 +143,7 @@ export default {
                 postal_code: shippingAddress.postal_code || "",
                 country: shippingAddress.country || "",
               } : undefined,
+              invoiceUrl, // Ajouter l'URL de la facture
             });
 
             console.log(`✅ Webhook Stripe reçu avec succès`);

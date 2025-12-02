@@ -33,6 +33,7 @@ interface OrderConfirmationData {
     postal_code?: string;
     country?: string;
   };
+  invoiceUrl?: string; // URL de la facture PDF Stripe
 }
 
 export const emailService = {
@@ -53,12 +54,40 @@ export const emailService = {
       // Email de réponse (reply-to) - utilisez votre email de support
       const replyToEmail = process.env.EMAIL_REPLY_TO || process.env.EMAIL_FROM || "support@votre-domaine.com";
 
+      // Préparer les pièces jointes
+      const attachments: any[] = [];
+
+      // Si on a une URL de facture Stripe, la télécharger et l'attacher
+      if (data.invoiceUrl) {
+        try {
+          console.log("📥 Téléchargement de la facture depuis Stripe...");
+          const response = await fetch(data.invoiceUrl);
+          if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const base64Content = buffer.toString('base64');
+
+            attachments.push({
+              filename: `Facture-${data.orderNumber}.pdf`,
+              content: base64Content,
+            });
+            console.log("✅ Facture téléchargée et attachée à l'email");
+          } else {
+            console.warn("⚠️  Impossible de télécharger la facture:", response.statusText);
+          }
+        } catch (error) {
+          console.error("❌ Erreur lors du téléchargement de la facture:", error);
+          // Ne pas bloquer l'envoi de l'email si la facture échoue
+        }
+      }
+
       const result = await resend.emails.send({
         from: fromFormatted,
         to: data.customerEmail,
         replyTo: replyToEmail, // Quand le client répond, ça ira à votre email de support
         subject: `Confirmation de commande #${data.orderNumber}`,
         html: emailHtml,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
 
       console.log("✅ Email envoyé avec succès:", result);
@@ -199,7 +228,7 @@ function generateOrderConfirmationHtml(data: OrderConfirmationData): string {
                       <tr>
                         <td style="padding: 20px; background-color: #ffffff; border-radius: 6px; border: 1px solid #e0e0e0; text-align: center;">
                           <p style="margin: 0; color: #34495e; font-size: 15px; line-height: 1.7;">
-                            Si vous avez des questions concernant votre commande, n'hésitez pas à nous contacter.
+                            Si vous avez des questions concernant votre commande, n'hésitez pas à nous contacter à <a href="mailto:${process.env.EMAIL_REPLY_TO || 'support@votre-domaine.com'}" style="color: #2c3e50; text-decoration: underline;">${process.env.EMAIL_REPLY_TO || 'support@votre-domaine.com'}</a>.
                           </p>
                         </td>
                       </tr>
@@ -222,7 +251,7 @@ function generateOrderConfirmationHtml(data: OrderConfirmationData): string {
                       })}
                     </p>
                     <p style="margin: 0; color: #95a5a6; font-size: 12px;">
-                      © ${new Date().getFullYear()} Votre E-commerce. Tous droits réservés.
+                      © ${new Date().getFullYear()} ${process.env.SHOP_NAME || 'Votre E-commerce'}. Tous droits réservés.
                     </p>
                   </td>
                 </tr>

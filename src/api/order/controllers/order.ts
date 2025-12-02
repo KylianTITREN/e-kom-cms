@@ -95,8 +95,19 @@ export default {
           timestamp: new Date().toISOString(),
           items_count: items.length,
         },
-        // Options de paiement
-        payment_method_types: ["card"],
+        // Options de paiement - MODIFIEZ ICI pour ajouter d'autres moyens de paiement
+        payment_method_types: [
+          "card",           // Cartes bancaires (Visa, Mastercard, Amex)
+          // "paypal",      // PayPal (nécessite compte PayPal Business + activation Stripe Dashboard)
+          // "klarna",      // Klarna (paiement en plusieurs fois)
+          // "bancontact",  // Bancontact (Belgique)
+          // "ideal",       // iDEAL (Pays-Bas)
+          // "link",        // Link by Stripe (paiement rapide)
+        ],
+        // Apple Pay s'active automatiquement si:
+        // 1. Activé dans Stripe Dashboard (Settings > Payment methods > Apple Pay)
+        // 2. Domaine vérifié en HTTPS
+        // 3. Navigateur compatible (Safari, Chrome sur iOS, etc.)
         billing_address_collection: "required",
         shipping_address_collection: {
           allowed_countries: ["FR", "BE", "CH", "LU", "MC"],
@@ -108,6 +119,22 @@ export default {
         currency: "eur",
         // Expire après 30 minutes
         expires_at: Math.floor(Date.now() / 1000) + 1800,
+        // FACTURATION AUTOMATIQUE
+        invoice_creation: {
+          enabled: true,
+          invoice_data: {
+            description: `Commande ${process.env.SHOP_NAME || "e-kom"}`,
+            footer: "Merci pour votre commande !",
+            metadata: {
+              order_source: "e-kom",
+            },
+            rendering_options: {
+              amount_tax_display: "include_inclusive_tax", // Afficher TTC
+            },
+          },
+        },
+        // Récupérer l'email du client pour la facture
+        customer_email: items[0]?.customerEmail, // Ajoutez ceci si vous avez l'email
       });
 
       console.log(`✅ Session Stripe créée: ${session.id}`);
