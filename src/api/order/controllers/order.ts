@@ -122,9 +122,9 @@ export default {
         // FACTURATION AUTOMATIQUE
         invoice_creation: {
           enabled: true,
+          locale: 'fr',
           invoice_data: {
             description: `Commande ${process.env.SHOP_NAME || "e-kom"}`,
-            footer: "Merci pour votre commande !",
             metadata: {
               order_source: "e-kom",
             },
