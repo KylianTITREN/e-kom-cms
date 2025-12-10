@@ -18,6 +18,10 @@ const getStripe = (): Stripe => {
 
 export default {
   async handleStripe(ctx) {
+    console.log("🔔 ========================================");
+    console.log("🔔 WEBHOOK REÇU - Début du traitement");
+    console.log("🔔 ========================================");
+
     const stripe = getStripe();
     const sig = ctx.request.headers["stripe-signature"];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -81,32 +85,52 @@ export default {
         }
 
         // Préparer les items pour l'email
-        const items = lineItems.map((item) => {
+        const items = lineItems.map((item, index) => {
+          console.log(`\n🔍 === Traitement item ${index + 1} ===`);
+
           const product = item.price?.product as Stripe.Product | undefined;
           const productName = product?.name || item.description || "Produit";
 
+          console.log("📦 Nom du produit:", productName);
+          console.log("📦 Type de produit:", typeof product);
+          console.log("📦 Produit complet:", JSON.stringify(product, null, 2));
+
           // Extraire les infos de gravure depuis les metadata du produit
           let info: string | undefined;
-          if (productName.includes("[Gravure]") && product?.metadata) {
-            const parts: string[] = [];
-            if (product.metadata.Texte) {
-              parts.push(`Texte: "${product.metadata.Texte}"`);
+          if (productName.includes("[Gravure]")) {
+            console.log("✍️  C'est une gravure, extraction des metadata...");
+            console.log("📋 Metadata du produit:", product?.metadata);
+
+            if (product?.metadata) {
+              const parts: string[] = [];
+              if (product.metadata.Texte) {
+                console.log("✅ Texte trouvé:", product.metadata.Texte);
+                parts.push(`Texte: "${product.metadata.Texte}"`);
+              } else {
+                console.log("❌ Pas de texte dans metadata");
+              }
+              if (product.metadata.Logo) {
+                console.log("✅ Logo trouvé:", product.metadata.Logo);
+                const logoFileName = product.metadata.Logo.split('/').pop() || 'logo';
+                parts.push(`Logo: ${logoFileName}`);
+              } else {
+                console.log("❌ Pas de logo dans metadata");
+              }
+              info = parts.length > 0 ? parts.join(' | ') : undefined;
+              console.log("📝 Info finale générée:", info);
+            } else {
+              console.log("❌ Pas de metadata du tout sur le produit");
             }
-            if (product.metadata.Logo) {
-              const logoFileName = product.metadata.Logo.split('/').pop() || 'logo';
-              parts.push(`Logo: ${logoFileName}`);
-            }
-            info = parts.length > 0 ? parts.join(' | ') : undefined;
           }
 
           const itemData = {
             name: productName,
             quantity: item.quantity || 1,
-            price: (item.amount_total || 0) / 100 / (item.quantity || 1), // Convertir en euros
+            price: (item.amount_total || 0) / 100 / (item.quantity || 1),
             info,
           };
 
-          console.log("📦 Item pour email:", itemData);
+          console.log("✅ ItemData final:", JSON.stringify(itemData, null, 2));
           return itemData;
         });
 
