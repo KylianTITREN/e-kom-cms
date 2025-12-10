@@ -149,18 +149,7 @@ export default {
         if (item.engraving) {
           console.log(`✍️  Ajout de gravure pour "${item.name}": ${item.engraving.label}`);
 
-          // Tenter de récupérer la gravure depuis Strapi pour obtenir le stripePriceId
-          let engraving: any = null;
-          try {
-            engraving = await strapi.db.query("api::engraving.engraving").findOne({
-              where: { documentId: item.engraving.type },
-              select: ["stripePriceId", "title", "price"],
-            });
-          } catch (error: any) {
-            console.warn(`⚠️  Gravure non trouvée dans Strapi (documentId: ${item.engraving.type}):`, error.message);
-          }
-
-          // Préparer la description enrichie
+          // Construire la description détaillée
           const descriptionParts = [];
           if (item.engraving.text) {
             descriptionParts.push(`Texte: "${item.engraving.text}"`);
@@ -169,33 +158,23 @@ export default {
             const logoFileName = item.engraving.logoUrl.split('/').pop() || 'logo';
             descriptionParts.push(`Logo: ${logoFileName}`);
           }
-          const engravingDescription = descriptionParts.length > 0
-            ? descriptionParts.join(' | ')
-            : 'Gravure personnalisée';
 
-          // Si la gravure a un stripePriceId, l'utiliser
-          if (engraving?.stripePriceId) {
-            console.log(`✅ Utilisation du Price ID Stripe pour la gravure "${engraving.title}": ${engraving.stripePriceId}`);
-            lineItems.push({
-              price: engraving.stripePriceId,
-              quantity: item.quantity,
-              description: engravingDescription,
-            });
-          } else {
-            // Sinon, créer le price dynamiquement (fallback)
-            console.log(`⚠️  Création dynamique du prix pour la gravure "${item.engraving.label}"`);
-            lineItems.push({
-              price_data: {
-                currency: "eur",
-                product_data: {
-                  name: `Gravure: ${item.engraving.label}`,
-                  description: engravingDescription,
+          // Toujours utiliser price_data pour la gravure (permet description personnalisée par commande)
+          console.log(`✅ Création gravure dynamique`);
+          lineItems.push({
+            price_data: {
+              currency: "eur",
+              unit_amount: Math.round(item.engraving.price * 100),
+              product_data: {
+                name: `[Gravure] ${item.engraving.label}`,
+                metadata: {
+                  "Texte": item.engraving.text || "",
+                  "Logo": item.engraving.logoUrl || "",
                 },
-                unit_amount: Math.round(item.engraving.price * 100),
               },
-              quantity: item.quantity,
-            });
-          }
+            },
+            quantity: item.quantity,
+          });
         }
 
         return lineItems;
@@ -214,18 +193,29 @@ export default {
           logoUrl: item.engraving.logoUrl || "",
         }));
 
+      const sessionMetadata: Record<string, string> = {
+        "Nombre de gravures": String(engravingInfo.length),
+      };
+
+      engravingInfo.forEach((engraving, index) => {
+        const prefix = `Gravure ${index + 1}`;
+        sessionMetadata[`${prefix} pour produit`] = engraving.product;
+        sessionMetadata[`${prefix} de type`] = engraving.type;
+        if (engraving.text) {
+          sessionMetadata[`${prefix} avec texte`] = engraving.text;
+        }
+        if (engraving.logoUrl) {
+          sessionMetadata[`${prefix} avec logo`] = engraving.logoUrl;
+        }
+      });
+
       // Créer la session Stripe avec metadata
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         line_items,
         success_url: `${process.env.FRONT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.FRONT_URL}/cancel`,
-        metadata: {
-          source: "e-kom-front",
-          timestamp: new Date().toISOString(),
-          items_count: items.length,
-          engravings: engravingInfo.length > 0 ? JSON.stringify(engravingInfo) : "",
-        },
+        metadata: sessionMetadata,
         // Options de paiement - MODIFIEZ ICI pour ajouter d'autres moyens de paiement
         payment_method_types: [
           "card",           // Cartes bancaires (Visa, Mastercard, Amex)
@@ -255,9 +245,7 @@ export default {
           enabled: true,
           invoice_data: {
             description: `Commande ${process.env.SHOP_NAME || "e-kom"}`,
-            metadata: {
-              order_source: "e-kom",
-            },
+            metadata: sessionMetadata,
             rendering_options: {
               amount_tax_display: "include_inclusive_tax", // Afficher TTC
             },

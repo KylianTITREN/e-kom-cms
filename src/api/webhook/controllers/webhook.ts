@@ -61,15 +61,17 @@ export default {
       try {
         // Récupérer les détails complets de la session avec les line_items
         const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
-          expand: ["line_items.data.price.product", "shipping_cost"],
+          expand: ["line_items.data.price.product", "shipping_cost", "shipping_details"],
         });
 
         const lineItems = fullSession.line_items?.data || [];
         const customerEmail = fullSession.customer_details?.email;
         const customerName = fullSession.customer_details?.name || "Client";
 
-        // Récupérer l'adresse de livraison depuis customer_details
-        const shippingAddress = fullSession.customer_details?.address;
+        // Récupérer l'adresse de livraison
+        const shippingAddress = (fullSession as any).shipping_details?.address || fullSession.customer_details?.address;
+
+        console.log("📦 Adresse de livraison:", shippingAddress);
 
         if (!customerEmail) {
           console.error("❌ Email client manquant dans la session");
@@ -81,22 +83,48 @@ export default {
         // Préparer les items pour l'email
         const items = lineItems.map((item) => {
           const product = item.price?.product as Stripe.Product | undefined;
-          return {
-            name: product?.name || item.description || "Produit",
+          const productName = product?.name || item.description || "Produit";
+
+          // Extraire les infos de gravure depuis les metadata du produit
+          let info: string | undefined;
+          if (productName.includes("[Gravure]") && product?.metadata) {
+            const parts: string[] = [];
+            if (product.metadata.Texte) {
+              parts.push(`Texte: "${product.metadata.Texte}"`);
+            }
+            if (product.metadata.Logo) {
+              const logoFileName = product.metadata.Logo.split('/').pop() || 'logo';
+              parts.push(`Logo: ${logoFileName}`);
+            }
+            info = parts.length > 0 ? parts.join(' | ') : undefined;
+          }
+
+          const itemData = {
+            name: productName,
             quantity: item.quantity || 1,
             price: (item.amount_total || 0) / 100 / (item.quantity || 1), // Convertir en euros
+            info,
           };
+
+          console.log("📦 Item pour email:", itemData);
+          return itemData;
         });
 
         const total = (fullSession.amount_total || 0) / 100;
 
-        // Récupérer les informations de gravure depuis les metadata
-        let engravingDetails = null;
-        if (fullSession.metadata?.engravings) {
+        console.log("📊 Items total:", items);
+        console.log("💰 Total commande:", total);
+
+        // Récupérer l'URL de la facture si disponible
+        let invoiceUrl: string | undefined;
+        if (fullSession.invoice) {
           try {
-            engravingDetails = JSON.parse(fullSession.metadata.engravings);
+            const invoiceId = typeof fullSession.invoice === 'string' ? fullSession.invoice : fullSession.invoice.id;
+            const invoice = await stripe.invoices.retrieve(invoiceId);
+            invoiceUrl = invoice.invoice_pdf || undefined;
+            console.log("📄 URL de la facture:", invoiceUrl);
           } catch (error) {
-            console.warn("⚠️  Impossible de parser les metadata de gravure");
+            console.warn("⚠️  Impossible de récupérer la facture");
           }
         }
 
@@ -116,21 +144,10 @@ export default {
                 country: shippingAddress.country || undefined,
               }
             : undefined,
-          engravings: engravingDetails,
+          invoiceUrl,
         });
 
         console.log(`✅ Email de confirmation envoyé à ${customerEmail}`);
-
-        // TODO: Créer une entrée "Order" dans Strapi si nécessaire
-        // await strapi.db.query("api::order.order").create({
-        //   data: {
-        //     stripeSessionId: session.id,
-        //     customerEmail,
-        //     items,
-        //     total,
-        //     status: "paid",
-        //   },
-        // });
       } catch (error: any) {
         console.error("❌ Erreur lors du traitement du webhook:", error);
         // On retourne 200 quand même pour éviter que Stripe réessaie indéfiniment

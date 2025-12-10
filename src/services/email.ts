@@ -18,13 +18,7 @@ interface OrderItem {
   name: string;
   quantity: number;
   price: number;
-}
-
-interface EngravingDetail {
-  product: string;
-  type: string;
-  text?: string;
-  hasLogo?: boolean;
+  info?: string;
 }
 
 interface OrderConfirmationData {
@@ -41,7 +35,6 @@ interface OrderConfirmationData {
     country?: string;
   };
   invoiceUrl?: string; // URL de la facture PDF Stripe
-  engravings?: EngravingDetail[];
 }
 
 export const emailService = {
@@ -116,6 +109,7 @@ function generateOrderConfirmationHtml(data: OrderConfirmationData): string {
     <tr>
       <td style="padding: 14px 12px; border-bottom: 1px solid #e0e0e0; color: #2c3e50; font-size: 15px;">
         ${item.name}
+        ${item.info ? `<br><span style="font-size: 13px; color: #7f8c8d; font-style: italic;">${item.info}</span>` : ''}
       </td>
       <td style="padding: 14px 12px; border-bottom: 1px solid #e0e0e0; text-align: center; color: #2c3e50; font-size: 15px;">
         ${item.quantity}
@@ -127,44 +121,6 @@ function generateOrderConfirmationHtml(data: OrderConfirmationData): string {
   `
     )
     .join("");
-
-  const engravingsHtml = data.engravings && data.engravings.length > 0
-    ? `
-    <!-- Personnalisations par gravure -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 25px;">
-      <tr>
-        <td style="padding: 25px; background-color: #e8f4f8; border-radius: 6px; border-left: 3px solid #3498db;">
-          <h3 style="margin: 0 0 15px 0; color: #2c3e50; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-            ✍️ Personnalisations par gravure
-          </h3>
-          ${data.engravings.map(engraving => `
-            <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #d0e8f2;">
-              <p style="margin: 0 0 5px 0; color: #2c3e50; font-weight: 600; font-size: 14px;">
-                ${engraving.product}
-              </p>
-              <p style="margin: 0 0 3px 0; color: #34495e; font-size: 13px;">
-                Type de gravure : ${engraving.type}
-              </p>
-              ${engraving.text ? `
-                <p style="margin: 0; color: #34495e; font-size: 13px;">
-                  Texte : "${engraving.text}"
-                </p>
-              ` : ''}
-              ${engraving.hasLogo ? `
-                <p style="margin: 0; color: #34495e; font-size: 13px;">
-                  Logo personnalisé fourni
-                </p>
-              ` : ''}
-            </div>
-          `).join('')}
-          <p style="margin: 10px 0 0 0; color: #7f8c8d; font-size: 12px; font-style: italic;">
-            Le vendeur vous contactera pour confirmer les détails de personnalisation avant fabrication.
-          </p>
-        </td>
-      </tr>
-    </table>
-  `
-    : "";
 
   const shippingHtml = data.shippingAddress
     ? `
@@ -266,8 +222,6 @@ function generateOrderConfirmationHtml(data: OrderConfirmationData): string {
                         </td>
                       </tr>
                     </table>
-
-                    ${engravingsHtml}
 
                     ${shippingHtml}
 
