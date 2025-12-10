@@ -90,6 +90,16 @@ export default {
 
         const total = (fullSession.amount_total || 0) / 100;
 
+        // Récupérer les informations de gravure depuis les metadata
+        let engravingDetails = null;
+        if (fullSession.metadata?.engravings) {
+          try {
+            engravingDetails = JSON.parse(fullSession.metadata.engravings);
+          } catch (error) {
+            console.warn("⚠️  Impossible de parser les metadata de gravure");
+          }
+        }
+
         // Envoyer l'email de confirmation
         await emailService.sendOrderConfirmation({
           customerEmail,
@@ -106,6 +116,7 @@ export default {
                 country: shippingAddress.country || undefined,
               }
             : undefined,
+          engravings: engravingDetails,
         });
 
         console.log(`✅ Email de confirmation envoyé à ${customerEmail}`);

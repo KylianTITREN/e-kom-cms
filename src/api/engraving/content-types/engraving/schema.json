@@ -1,0 +1,67 @@
+{
+  "kind": "collectionType",
+  "collectionName": "engravings",
+  "info": {
+    "singularName": "engraving",
+    "pluralName": "engravings",
+    "displayName": "Gravure",
+    "description": "Options de gravure pour les produits"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "description": {
+      "type": "text"
+    },
+    "price": {
+      "type": "decimal",
+      "required": true,
+      "default": 0
+    },
+    "allowText": {
+      "type": "boolean",
+      "default": true
+    },
+    "textMaxLength": {
+      "type": "integer",
+      "conditions": {
+        "visible": {
+          "==": [
+            {
+              "var": "allowText"
+            },
+            true
+          ]
+        }
+      },
+      "default": 50,
+      "min": 1,
+      "max": 200
+    },
+    "allowLogo": {
+      "type": "boolean",
+      "default": false
+    },
+    "stripeProductId": {
+      "type": "string",
+      "unique": true
+    },
+    "stripePriceId": {
+      "type": "string",
+      "unique": true
+    },
+    "products": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::product.product",
+      "mappedBy": "engravings"
+    }
+  }
+}

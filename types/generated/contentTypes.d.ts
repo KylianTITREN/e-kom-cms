@@ -533,6 +533,55 @@ export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiEngravingEngraving extends Struct.CollectionTypeSchema {
+  collectionName: 'engravings';
+  info: {
+    description: 'Options de gravure pour les produits';
+    displayName: 'Gravure';
+    pluralName: 'engravings';
+    singularName: 'engraving';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    allowLogo: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    allowText: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::engraving.engraving'
+    > &
+      Schema.Attribute.Private;
+    price: Schema.Attribute.Decimal &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<0>;
+    products: Schema.Attribute.Relation<'manyToMany', 'api::product.product'>;
+    publishedAt: Schema.Attribute.DateTime;
+    stripePriceId: Schema.Attribute.String & Schema.Attribute.Unique;
+    stripeProductId: Schema.Attribute.String & Schema.Attribute.Unique;
+    textMaxLength: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 200;
+          min: 1;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<50>;
+    title: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiHomepageContentHomepageContent
   extends Struct.SingleTypeSchema {
   collectionName: 'homepage_contents';
@@ -667,6 +716,10 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     description: Schema.Attribute.Blocks;
+    engravings: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::engraving.engraving'
+    >;
     images: Schema.Attribute.Media<
       'images' | 'files' | 'videos' | 'audios',
       true
@@ -711,6 +764,8 @@ export interface ApiSettingSetting extends Struct.SingleTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     favicon: Schema.Attribute.Media<'images'>;
+    freeShippingThreshold: Schema.Attribute.Decimal &
+      Schema.Attribute.DefaultTo<100>;
     googleAnalyticsId: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -1277,6 +1332,7 @@ declare module '@strapi/strapi' {
       'admin::user': AdminUser;
       'api::brand.brand': ApiBrandBrand;
       'api::category.category': ApiCategoryCategory;
+      'api::engraving.engraving': ApiEngravingEngraving;
       'api::homepage-content.homepage-content': ApiHomepageContentHomepageContent;
       'api::legal-page.legal-page': ApiLegalPageLegalPage;
       'api::news-article.news-article': ApiNewsArticleNewsArticle;

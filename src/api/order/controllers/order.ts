@@ -29,47 +29,109 @@ export default {
 
       const stripe = getStripe();
 
-      // Préparer les line_items avec validation
-      const line_items = await Promise.all(
-        items.map(async (item) => {
-          // Validation de l'item
-          if (!item.id || !item.name || !item.price || !item.quantity) {
-            throw new Error(`Item invalide: ${JSON.stringify(item)}`);
+      // VALIDATION : Vérifier que tous les produits existent et sont à jour
+      const validationErrors = [];
+
+      for (const item of items) {
+        // Validation de base
+        if (!item.id || !item.name || !item.price || !item.quantity) {
+          validationErrors.push(`Produit invalide dans le panier`);
+          continue;
+        }
+
+        // Récupérer le produit actuel depuis Strapi
+        try {
+          const productId = !isNaN(Number(item.id)) ? Number(item.id) : item.id;
+          const currentProduct = await strapi.db.query("api::product.product").findOne({
+            where: { id: productId },
+            select: ["id", "name", "price", "publishedAt"],
+            populate: ["engravings"],
+          });
+
+          // Vérifier que le produit existe toujours
+          if (!currentProduct) {
+            validationErrors.push(`Le produit "${item.name}" n'est plus disponible`);
+            continue;
           }
 
-          if (item.price <= 0) {
-            throw new Error(`Prix invalide pour "${item.name}": ${item.price}`);
+          // Vérifier que le produit est toujours publié
+          if (!currentProduct.publishedAt) {
+            validationErrors.push(`Le produit "${item.name}" n'est plus disponible`);
+            continue;
           }
 
-          if (item.quantity <= 0 || item.quantity > 99) {
-            throw new Error(`Quantité invalide pour "${item.name}": ${item.quantity}`);
+          // Vérifier que le prix n'a pas changé
+          if (Math.abs(currentProduct.price - item.price) > 0.01) {
+            validationErrors.push(
+              `Le prix de "${item.name}" a changé (${item.price.toFixed(2)}€ → ${currentProduct.price.toFixed(2)}€)`
+            );
+            continue;
           }
 
-          // Essayer de récupérer le produit Strapi pour obtenir le stripePriceId
-          let product: any = null;
-          try {
-            // Tenter conversion en number, sinon utiliser l'ID tel quel
-            const productId = !isNaN(Number(item.id)) ? Number(item.id) : item.id;
-            product = await strapi.db.query("api::product.product").findOne({
-              where: { id: productId },
-              select: ["stripePriceId"],
+          // Si gravure sélectionnée, vérifier qu'elle existe toujours et que son prix est correct
+          if (item.engraving) {
+            const currentEngraving = await strapi.db.query("api::engraving.engraving").findOne({
+              where: { documentId: item.engraving.type },
+              select: ["id", "title", "price", "publishedAt"],
             });
-          } catch (error: any) {
-            console.warn(`⚠️  Produit non trouvé dans Strapi (ID: ${item.id}):`, error.message);
-          }
 
-          // Si le produit a un stripePriceId, l'utiliser
-          if (product?.stripePriceId) {
-            console.log(`✅ Utilisation du Price ID Stripe pour "${item.name}": ${product.stripePriceId}`);
-            return {
-              price: product.stripePriceId,
-              quantity: item.quantity,
-            };
-          }
+            if (!currentEngraving) {
+              validationErrors.push(`L'option de gravure "${item.engraving.label}" n'est plus disponible`);
+              continue;
+            }
 
+            if (!currentEngraving.publishedAt) {
+              validationErrors.push(`L'option de gravure "${item.engraving.label}" n'est plus disponible`);
+              continue;
+            }
+
+            if (Math.abs(currentEngraving.price - item.engraving.price) > 0.01) {
+              validationErrors.push(
+                `Le prix de la gravure "${item.engraving.label}" a changé (${item.engraving.price.toFixed(2)}€ → ${currentEngraving.price.toFixed(2)}€)`
+              );
+              continue;
+            }
+          }
+        } catch (error: any) {
+          console.error(`❌ Erreur validation produit ${item.id}:`, error.message);
+          validationErrors.push(`Erreur lors de la validation du produit "${item.name}"`);
+        }
+      }
+
+      // Si des erreurs de validation, renvoyer une erreur 409 (Conflict)
+      if (validationErrors.length > 0) {
+        console.warn(`⚠️  Validation panier échouée:`, validationErrors);
+        ctx.status = 409;
+        ctx.body = {
+          error: "cart_outdated",
+          message: "Votre panier n'est plus à jour. Veuillez le vider et recommencer.",
+          details: validationErrors,
+        };
+        return;
+      }
+
+      // Préparer les line_items
+      const line_items_promises = items.map(async (item) => {
+        const lineItems = [];
+
+        // Récupérer le produit Strapi pour obtenir le stripePriceId
+        const productId = !isNaN(Number(item.id)) ? Number(item.id) : item.id;
+        const product = await strapi.db.query("api::product.product").findOne({
+          where: { id: productId },
+          select: ["stripePriceId"],
+        });
+
+        // Si le produit a un stripePriceId, l'utiliser
+        if (product?.stripePriceId) {
+          console.log(`✅ Utilisation du Price ID Stripe pour "${item.name}": ${product.stripePriceId}`);
+          lineItems.push({
+            price: product.stripePriceId,
+            quantity: item.quantity,
+          });
+        } else {
           // Sinon, créer le price dynamiquement (fallback)
           console.log(`⚠️  Création dynamique du prix pour "${item.name}"`);
-          return {
+          lineItems.push({
             price_data: {
               currency: "eur",
               product_data: {
@@ -80,9 +142,77 @@ export default {
               unit_amount: Math.round(item.price * 100), // Convertir en centimes
             },
             quantity: item.quantity,
-          };
-        })
-      );
+          });
+        }
+
+        // Ajouter un line_item pour la gravure si présente
+        if (item.engraving) {
+          console.log(`✍️  Ajout de gravure pour "${item.name}": ${item.engraving.label}`);
+
+          // Tenter de récupérer la gravure depuis Strapi pour obtenir le stripePriceId
+          let engraving: any = null;
+          try {
+            engraving = await strapi.db.query("api::engraving.engraving").findOne({
+              where: { documentId: item.engraving.type },
+              select: ["stripePriceId", "title", "price"],
+            });
+          } catch (error: any) {
+            console.warn(`⚠️  Gravure non trouvée dans Strapi (documentId: ${item.engraving.type}):`, error.message);
+          }
+
+          // Préparer la description enrichie
+          const descriptionParts = [];
+          if (item.engraving.text) {
+            descriptionParts.push(`Texte: "${item.engraving.text}"`);
+          }
+          if (item.engraving.logoUrl) {
+            const logoFileName = item.engraving.logoUrl.split('/').pop() || 'logo';
+            descriptionParts.push(`Logo: ${logoFileName}`);
+          }
+          const engravingDescription = descriptionParts.length > 0
+            ? descriptionParts.join(' | ')
+            : 'Gravure personnalisée';
+
+          // Si la gravure a un stripePriceId, l'utiliser
+          if (engraving?.stripePriceId) {
+            console.log(`✅ Utilisation du Price ID Stripe pour la gravure "${engraving.title}": ${engraving.stripePriceId}`);
+            lineItems.push({
+              price: engraving.stripePriceId,
+              quantity: item.quantity,
+              description: engravingDescription,
+            });
+          } else {
+            // Sinon, créer le price dynamiquement (fallback)
+            console.log(`⚠️  Création dynamique du prix pour la gravure "${item.engraving.label}"`);
+            lineItems.push({
+              price_data: {
+                currency: "eur",
+                product_data: {
+                  name: `Gravure: ${item.engraving.label}`,
+                  description: engravingDescription,
+                },
+                unit_amount: Math.round(item.engraving.price * 100),
+              },
+              quantity: item.quantity,
+            });
+          }
+        }
+
+        return lineItems;
+      });
+
+      const line_items_nested = await Promise.all(line_items_promises);
+      const line_items = line_items_nested.flat();
+
+      // Préparer les metadata avec infos de gravure
+      const engravingInfo = items
+        .filter(item => item.engraving)
+        .map(item => ({
+          product: item.name,
+          type: item.engraving.label,
+          text: item.engraving.text || "",
+          logoUrl: item.engraving.logoUrl || "",
+        }));
 
       // Créer la session Stripe avec metadata
       const session = await stripe.checkout.sessions.create({
@@ -94,6 +224,7 @@ export default {
           source: "e-kom-front",
           timestamp: new Date().toISOString(),
           items_count: items.length,
+          engravings: engravingInfo.length > 0 ? JSON.stringify(engravingInfo) : "",
         },
         // Options de paiement - MODIFIEZ ICI pour ajouter d'autres moyens de paiement
         payment_method_types: [
