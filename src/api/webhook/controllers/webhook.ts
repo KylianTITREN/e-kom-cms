@@ -75,8 +75,8 @@ export default {
         // Récupérer l'adresse de livraison
         const shippingAddress = (fullSession as any).shipping_details?.address || fullSession.customer_details?.address;
 
-        console.log("📦 Adresse de livraison:", shippingAddress);
-        console.log("📋 Metadata de la session:", fullSession.metadata);
+        console.log("📦 Adresse de livraison:", shippingAddress ? `${shippingAddress.line1}, ${shippingAddress.city}` : "Non fournie");
+        console.log("📋 Metadata de la session:", fullSession.metadata ? Object.keys(fullSession.metadata).join(", ") : "Aucune");
 
         if (!customerEmail) {
           console.error("❌ Email client manquant dans la session");
@@ -146,14 +146,13 @@ export default {
             info,
           };
 
-          console.log("✅ ItemData:", JSON.stringify(itemData, null, 2));
+          console.log("✅ ItemData:", `${itemData.name} x${itemData.quantity} - ${itemData.price}€${itemData.info ? ' (' + itemData.info + ')' : ''}`);
           return itemData;
         });
 
         const total = (fullSession.amount_total || 0) / 100;
 
-        console.log("📊 Items total:", items);
-        console.log("💰 Total commande:", total);
+        console.log(`📊 Total: ${items.length} items - ${total.toFixed(2)}€`);
 
         // Récupérer l'URL de la facture si disponible
         let invoiceUrl: string | undefined;
