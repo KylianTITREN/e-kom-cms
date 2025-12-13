@@ -76,12 +76,34 @@ export default {
         const shippingAddress = (fullSession as any).shipping_details?.address || fullSession.customer_details?.address;
 
         console.log("📦 Adresse de livraison:", shippingAddress);
+        console.log("📋 Metadata de la session:", fullSession.metadata);
 
         if (!customerEmail) {
           console.error("❌ Email client manquant dans la session");
           ctx.status = 200; // On retourne 200 pour ne pas que Stripe réessaie
           ctx.body = { received: true, warning: "Email manquant" };
           return;
+        }
+
+        // Extraire les infos de gravure depuis les metadata de la session
+        const engravingMetadata: Record<string, { text?: string; logo?: string }> = {};
+        const nbGravures = parseInt(fullSession.metadata?.["Nombre de gravures"] || "0", 10);
+
+        console.log(`📝 Nombre de gravures détecté: ${nbGravures}`);
+
+        for (let i = 1; i <= nbGravures; i++) {
+          const prefix = `Gravure ${i}`;
+          const productName = fullSession.metadata?.[`${prefix} pour produit`];
+          const text = fullSession.metadata?.[`${prefix} avec texte`];
+          const logo = fullSession.metadata?.[`${prefix} avec logo`];
+
+          if (productName) {
+            engravingMetadata[productName] = {
+              text: text || undefined,
+              logo: logo || undefined,
+            };
+            console.log(`✍️  Gravure ${i} pour "${productName}":`, engravingMetadata[productName]);
+          }
         }
 
         // Préparer les items pour l'email
@@ -92,13 +114,29 @@ export default {
           const productName = product?.name || item.description || "Produit";
 
           console.log("📦 Nom:", productName);
-          console.log("📦 Description:", product?.description);
 
-          // Pour les gravures, la description contient les infos (Texte: ... | Logo: ...)
+          // Pour les gravures, construire l'info depuis les metadata
           let info: string | undefined;
-          if (productName.includes("[Gravure]") && product?.description) {
-            info = product.description;
-            console.log("✍️  Info gravure extraite:", info);
+          if (productName.includes("[Gravure]")) {
+            console.log("✍️  C'est une gravure, recherche dans les metadata de la session...");
+
+            // Trouver le produit associé dans les metadata
+            for (const gravureData of Object.values(engravingMetadata)) {
+              const parts: string[] = [];
+              if (gravureData.text) {
+                parts.push(`Texte: "${gravureData.text}"`);
+              }
+              if (gravureData.logo) {
+                const logoFileName = gravureData.logo.split('/').pop() || 'logo';
+                parts.push(`Logo: ${logoFileName}`);
+              }
+
+              if (parts.length > 0) {
+                info = parts.join(' | ');
+                console.log("✅ Info gravure construite:", info);
+                break;
+              }
+            }
           }
 
           const itemData = {
