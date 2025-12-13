@@ -67,6 +67,9 @@ export default {
           return;
         }
 
+        console.log("🔔 ========================================");
+        console.log("🔔 WEBHOOK REÇU - Début du traitement");
+        console.log("🔔 ========================================");
         console.log(`📥 Webhook reçu: ${event.type}`);
 
         // Gérer l'événement checkout.session.completed
@@ -76,13 +79,16 @@ export default {
           try {
             // Récupérer les détails de la session avec les line_items
             const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
-              expand: ["line_items", "line_items.data.price.product"],
+              expand: ["line_items", "line_items.data.price.product", "shipping_details"],
             });
 
             const customerEmail = fullSession.customer_details?.email;
             const customerName = fullSession.customer_details?.name || "Client";
             const lineItems = fullSession.line_items?.data || [];
-            const shippingAddress = (fullSession as any).shipping_details?.address;
+            const shippingAddress = (fullSession as any).shipping_details?.address || fullSession.customer_details?.address;
+
+            console.log("📦 Adresse de livraison:", shippingAddress ? `${shippingAddress.line1}, ${shippingAddress.city}` : "Non fournie");
+            console.log("📋 Metadata de la session:", fullSession.metadata ? Object.keys(fullSession.metadata).join(", ") : "Aucune");
 
             if (!customerEmail) {
               console.error("❌ Email client manquant");
@@ -91,14 +97,74 @@ export default {
               return;
             }
 
+            // Extraire les infos de gravure depuis les metadata de la session
+            const engravingMetadata: Record<string, { text?: string; logo?: string }> = {};
+            const nbGravures = parseInt(fullSession.metadata?.["Nombre de gravures"] || "0", 10);
+
+            console.log(`📝 Nombre de gravures détecté: ${nbGravures}`);
+
+            for (let i = 1; i <= nbGravures; i++) {
+              const prefix = `Gravure ${i}`;
+              const productName = fullSession.metadata?.[`${prefix} pour produit`];
+              const text = fullSession.metadata?.[`${prefix} avec texte`];
+              const logo = fullSession.metadata?.[`${prefix} avec logo`];
+
+              if (productName) {
+                engravingMetadata[productName] = {
+                  text: text || undefined,
+                  logo: logo || undefined,
+                };
+                console.log(`✍️  Gravure ${i} pour "${productName}":`, engravingMetadata[productName]);
+              }
+            }
+
             // Préparer les données pour l'email
-            const items = lineItems.map((item: any) => ({
-              name: item.description || "Produit",
-              quantity: item.quantity || 1,
-              price: parseFloat((item.amount_total / 100).toFixed(2)),
-            }));
+            const items = lineItems.map((item: any, index: number) => {
+              console.log(`\n🔍 === Item ${index + 1} ===`);
+
+              const product = item.price?.product as Stripe.Product | undefined;
+              const productName = product?.name || item.description || "Produit";
+
+              console.log("📦 Nom:", productName);
+
+              // Pour les gravures, construire l'info depuis les metadata
+              let info: string | undefined;
+              if (productName.includes("[Gravure]")) {
+                console.log("✍️  C'est une gravure, recherche dans les metadata de la session...");
+
+                // Trouver le produit associé dans les metadata
+                for (const gravureData of Object.values(engravingMetadata)) {
+                  const parts: string[] = [];
+                  if (gravureData.text) {
+                    parts.push(`Texte: "${gravureData.text}"`);
+                  }
+                  if (gravureData.logo) {
+                    const logoFileName = gravureData.logo.split('/').pop() || 'logo';
+                    parts.push(`Logo: ${logoFileName}`);
+                  }
+
+                  if (parts.length > 0) {
+                    info = parts.join(' | ');
+                    console.log("✅ Info gravure construite:", info);
+                    break;
+                  }
+                }
+              }
+
+              const itemData = {
+                name: productName,
+                quantity: item.quantity || 1,
+                price: parseFloat((item.amount_total / 100 / (item.quantity || 1)).toFixed(2)),
+                info,
+              };
+
+              console.log("✅ ItemData:", `${itemData.name} x${itemData.quantity} - ${itemData.price}€${itemData.info ? ' (' + itemData.info + ')' : ''}`);
+              return itemData;
+            });
 
             const total = parseFloat((fullSession.amount_total! / 100).toFixed(2));
+
+            console.log(`📊 Total: ${items.length} items - ${total.toFixed(2)}€`);
 
             // Générer un numéro de commande court et lisible
             // Format: CMD-YYYYMMDD-XXXXX (ex: CMD-20251202-A3F9E)
