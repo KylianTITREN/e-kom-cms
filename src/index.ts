@@ -162,9 +162,18 @@ export default {
               return itemData;
             });
 
+            // Calculer le sous-total (produits uniquement)
+            const subtotal = parseFloat((fullSession.amount_subtotal! / 100).toFixed(2));
+
+            // Frais de livraison
+            const shippingCost = fullSession.total_details?.amount_shipping
+              ? parseFloat((fullSession.total_details.amount_shipping / 100).toFixed(2))
+              : 0;
+
+            // Total général
             const total = parseFloat((fullSession.amount_total! / 100).toFixed(2));
 
-            console.log(`📊 Total: ${items.length} items - ${total.toFixed(2)}€`);
+            console.log(`📊 Sous-total: ${subtotal.toFixed(2)}€ | Livraison: ${shippingCost.toFixed(2)}€ | Total: ${total.toFixed(2)}€`);
 
             // Générer un numéro de commande court et lisible
             // Format: CMD-YYYYMMDD-XXXXX (ex: CMD-20251202-A3F9E)
@@ -201,6 +210,8 @@ export default {
               customerName,
               orderNumber,
               items,
+              subtotal,
+              shippingCost,
               total,
               shippingAddress: shippingAddress ? {
                 line1: shippingAddress.line1 || "",

@@ -209,13 +209,54 @@ export default {
         }
       });
 
-      // Créer la session Stripe avec metadata
+      // Récupérer les shipping rates actifs depuis Stripe
+      const shippingRates = await stripe.shippingRates.list({
+        active: true,
+        limit: 10,
+      });
+
+      // Préparer les shipping options pour la session
+      const shippingOptions = shippingRates.data.map((rate) => ({
+        shipping_rate: rate.id,
+      }));
+
+      // Construire la liste des pays autorisés selon les zones disponibles
+      const allowedCountries: string[] = [];
+      const hasZones = shippingRates.data.some(rate => rate.metadata?.zone);
+
+      if (hasZones) {
+        // Si on a des zones définies, déterminer les pays selon les zones
+        shippingRates.data.forEach(rate => {
+          const zone = rate.metadata?.zone;
+
+          if (zone === 'france') {
+            allowedCountries.push('FR');
+          } else if (zone === 'europe') {
+            // Pays européens
+            allowedCountries.push('BE', 'DE', 'IT', 'ES', 'NL', 'PT', 'AT', 'LU', 'CH', 'DK', 'SE', 'NO', 'FI', 'IE', 'PL', 'CZ', 'HU', 'RO', 'BG', 'GR', 'HR', 'SI', 'SK', 'EE', 'LV', 'LT', 'CY', 'MT');
+          } else if (zone === 'international') {
+            // Ajouter des pays internationaux courants
+            allowedCountries.push('US', 'CA', 'GB', 'AU', 'NZ', 'JP', 'SG', 'HK', 'AE', 'SA', 'BR', 'MX', 'AR', 'CL', 'CO', 'PE');
+          }
+        });
+
+        // Dédupliquer
+        const uniqueCountries = [...new Set(allowedCountries)];
+        console.log(`📦 ${shippingOptions.length} options de livraison disponibles pour ${uniqueCountries.length} pays`);
+      } else {
+        // Pas de zones définies, autoriser pays européens par défaut
+        allowedCountries.push('FR', 'BE', 'DE', 'IT', 'ES', 'NL', 'PT', 'AT', 'LU', 'CH');
+        console.log(`📦 ${shippingOptions.length} options de livraison disponibles (pays européens par défaut)`);
+      }
+
+      // Créer la session Stripe avec metadata et shipping
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         line_items,
         success_url: `${process.env.FRONT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.FRONT_URL}/cancel`,
         metadata: sessionMetadata,
+        shipping_options: shippingOptions.length > 0 ? shippingOptions : undefined,
         // Options de paiement - MODIFIEZ ICI pour ajouter d'autres moyens de paiement
         payment_method_types: [
           "card",           // Cartes bancaires (Visa, Mastercard, Amex)

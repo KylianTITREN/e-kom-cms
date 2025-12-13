@@ -48,11 +48,6 @@
     },
     "googleAnalyticsId": {
       "type": "string"
-    },
-    "freeShippingThreshold": {
-      "type": "decimal",
-      "default": 100,
-      "required": false
     }
   }
 }

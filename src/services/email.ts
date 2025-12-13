@@ -26,6 +26,8 @@ interface OrderConfirmationData {
   customerName: string;
   orderNumber: string;
   items: OrderItem[];
+  subtotal: number;
+  shippingCost: number;
   total: number;
   shippingAddress?: {
     line1?: string;
@@ -209,6 +211,22 @@ function generateOrderConfirmationHtml(data: OrderConfirmationData): string {
                               ${itemsHtml}
                             </tbody>
                             <tfoot>
+                              <tr>
+                                <td colspan="2" style="padding: 12px; text-align: right; color: #7f8c8d; font-size: 14px;">
+                                  Sous-total :
+                                </td>
+                                <td style="padding: 12px; text-align: right; color: #2c3e50; font-size: 14px;">
+                                  ${data.subtotal.toFixed(2)} €
+                                </td>
+                              </tr>
+                              <tr>
+                                <td colspan="2" style="padding: 12px; text-align: right; color: #7f8c8d; font-size: 14px; border-bottom: 1px solid #e0e0e0;">
+                                  Frais de livraison :
+                                </td>
+                                <td style="padding: 12px; text-align: right; color: #2c3e50; font-size: 14px; border-bottom: 1px solid #e0e0e0;">
+                                  ${data.shippingCost > 0 ? data.shippingCost.toFixed(2) + ' €' : 'Gratuit'}
+                                </td>
+                              </tr>
                               <tr>
                                 <td colspan="2" style="padding: 18px 12px; text-align: right; color: #2c3e50; font-weight: 600; font-size: 16px; background-color: #f8f9fa;">
                                   Total :
