@@ -79,7 +79,7 @@ export default {
           try {
             // Récupérer les détails de la session avec les line_items
             const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
-              expand: ["line_items", "line_items.data.price.product", "shipping_details"],
+              expand: ["line_items", "line_items.data.price.product"],
             });
 
             const customerEmail = fullSession.customer_details?.email;
