@@ -23,7 +23,13 @@
     "description": {
       "type": "text"
     },
-    "subcategories": {
+    "brands": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::brand.brand",
+      "mappedBy": "categories"
+    },
+    "subCategories": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::subcategory.subcategory",

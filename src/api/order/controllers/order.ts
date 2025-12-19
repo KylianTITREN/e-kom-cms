@@ -183,6 +183,15 @@ export default {
       const line_items_nested = await Promise.all(line_items_promises);
       const line_items = line_items_nested.flat();
 
+      // Calculer le montant total du panier (avant frais de livraison)
+      const cartTotal = items.reduce((total, item) => {
+        const itemTotal = item.price * item.quantity;
+        const engravingTotal = item.engraving ? item.engraving.price * item.quantity : 0;
+        return total + itemTotal + engravingTotal;
+      }, 0);
+
+      console.log(`🛒 Montant total du panier: ${cartTotal.toFixed(2)}€`);
+
       // Préparer les metadata avec infos de gravure
       const engravingInfo = items
         .filter(item => item.engraving)
@@ -215,10 +224,51 @@ export default {
         limit: 10,
       });
 
-      // Préparer les shipping options pour la session
-      const shippingOptions = shippingRates.data.map((rate) => ({
-        shipping_rate: rate.id,
-      }));
+      // Vérifier si le panier atteint le seuil de livraison gratuite
+      let eligibleForFreeShipping = false;
+      let freeShippingThreshold: number | null = null;
+
+      shippingRates.data.forEach((rate) => {
+        if (rate.metadata?.free_shipping_threshold) {
+          const threshold = parseFloat(rate.metadata.free_shipping_threshold);
+          if (cartTotal >= threshold) {
+            eligibleForFreeShipping = true;
+            freeShippingThreshold = threshold;
+          }
+        }
+      });
+
+      // Filtrer les shipping rates selon le montant du panier
+      // Logique: sélectionner l'option avec le show_under le PLUS PETIT qui englobe le panier
+      // Ex: panier 15€ < 20 → Express, panier 50€ < 100 (mais pas < 20) → Standard
+      let shippingOptions = [];
+
+      if (!eligibleForFreeShipping) {
+        // Récupérer toutes les options avec leur show_under
+        const ratesWithThreshold = shippingRates.data
+          .map((rate) => ({
+            rate,
+            showUnder: rate.metadata?.show_under ? parseFloat(rate.metadata.show_under) : Infinity,
+          }))
+          .filter((item) => cartTotal < item.showUnder); // Ne garder que celles où panier < seuil
+
+        if (ratesWithThreshold.length > 0) {
+          // Trier par show_under croissant (du plus petit au plus grand)
+          ratesWithThreshold.sort((a, b) => a.showUnder - b.showUnder);
+
+          // Prendre la première (la plus petite applicable)
+          const selectedRate = ratesWithThreshold[0];
+
+          shippingOptions = [{
+            shipping_rate: selectedRate.rate.id,
+          }];
+          console.log(`📦 Option de livraison sélectionnée: ${selectedRate.rate.display_name} (panier: ${cartTotal.toFixed(2)}€, seuil: ${selectedRate.showUnder === Infinity ? 'illimité' : selectedRate.showUnder + '€'})`);
+        } else {
+          console.log(`⚠️  Aucune option de livraison applicable pour ${cartTotal.toFixed(2)}€`);
+        }
+      } else {
+        console.log(`🎉 Livraison gratuite activée (seuil: ${freeShippingThreshold}€, panier: ${cartTotal.toFixed(2)}€)`);
+      }
 
       // Construire la liste des pays autorisés selon les zones disponibles
       const allowedCountries: string[] = [];
@@ -250,13 +300,12 @@ export default {
       }
 
       // Créer la session Stripe avec metadata et shipping
-      const session = await stripe.checkout.sessions.create({
+      const sessionConfig: any = {
         mode: "payment",
         line_items,
         success_url: `${process.env.FRONT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.FRONT_URL}/cancel`,
         metadata: sessionMetadata,
-        shipping_options: shippingOptions.length > 0 ? shippingOptions : undefined,
         // Options de paiement - MODIFIEZ ICI pour ajouter d'autres moyens de paiement
         payment_method_types: [
           "card",           // Cartes bancaires (Visa, Mastercard, Amex)
@@ -281,6 +330,15 @@ export default {
         currency: "eur",
         // Expire après 30 minutes
         expires_at: Math.floor(Date.now() / 1000) + 1800,
+      };
+
+      // Ajouter les shipping options seulement si pas de livraison gratuite
+      if (shippingOptions.length > 0) {
+        sessionConfig.shipping_options = shippingOptions;
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        ...sessionConfig,
         // FACTURATION AUTOMATIQUE
         invoice_creation: {
           enabled: true,

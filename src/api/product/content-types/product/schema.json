@@ -49,6 +49,30 @@
       "type": "string",
       "unique": true
     },
+    "engravings": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::engraving.engraving",
+      "inversedBy": "products"
+    },
+    "isPromo": {
+      "type": "boolean",
+      "default": false
+    },
+    "limitedEdition": {
+      "type": "boolean",
+      "default": false
+    },
+    "endOfSeries": {
+      "type": "boolean",
+      "default": false
+    },
+    "category": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::category.category",
+      "inversedBy": "products"
+    },
     "brand": {
       "type": "relation",
       "relation": "manyToOne",
@@ -59,18 +83,6 @@
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::subcategory.subcategory",
-      "inversedBy": "products"
-    },
-    "category": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::category.category",
-      "inversedBy": "products"
-    },
-    "engravings": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::engraving.engraving",
       "inversedBy": "products"
     }
   }

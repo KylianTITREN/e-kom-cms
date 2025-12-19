@@ -43,6 +43,10 @@ export default {
         freeShippingThreshold: rate.metadata?.free_shipping_threshold
           ? parseFloat(rate.metadata.free_shipping_threshold)
           : null,
+        // Récupérer le seuil d'affichage depuis les metadata
+        showUnder: rate.metadata?.show_under
+          ? parseFloat(rate.metadata.show_under)
+          : null,
         deliveryEstimate: rate.delivery_estimate ? {
           minimum: rate.delivery_estimate.minimum,
           maximum: rate.delivery_estimate.maximum,
