@@ -85,7 +85,8 @@ export default {
             const customerEmail = fullSession.customer_details?.email;
             const customerName = fullSession.customer_details?.name || "Client";
             const lineItems = fullSession.line_items?.data || [];
-            const shippingAddress = (fullSession as any).shipping_details?.address || fullSession.customer_details?.address;
+            // L'adresse de livraison se trouve dans collected_information.shipping_details.address
+            const shippingAddress = (fullSession as any).collected_information?.shipping_details?.address;
 
             console.log("📦 Adresse de livraison:", shippingAddress ? `${shippingAddress.line1}, ${shippingAddress.city}` : "Non fournie");
             console.log("📋 Metadata de la session:", fullSession.metadata ? Object.keys(fullSession.metadata).join(", ") : "Aucune");
