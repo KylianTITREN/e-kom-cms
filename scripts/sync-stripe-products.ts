@@ -115,7 +115,7 @@ async function syncProduct(product: any) {
       metadata: {
         strapiId: product.documentId || product.id.toString(),
         strapiSlug: product.slug || '',
-        reference: product.reference || '',
+        "Référence": product.reference || '',
       },
     });
 
