@@ -746,6 +746,7 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
     name: Schema.Attribute.String & Schema.Attribute.Required;
     price: Schema.Attribute.Decimal & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
+    reference: Schema.Attribute.String;
     slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
     stripePriceId: Schema.Attribute.String & Schema.Attribute.Unique;
     stripeProductId: Schema.Attribute.String & Schema.Attribute.Unique;

@@ -115,6 +115,7 @@ async function syncProduct(product: any) {
       metadata: {
         strapiId: product.documentId || product.id.toString(),
         strapiSlug: product.slug || '',
+        reference: product.reference || '',
       },
     });
 
@@ -127,13 +128,19 @@ async function syncProduct(product: any) {
     // Mettre à jour si nécessaire
     const needsUpdate =
       stripeProduct.name !== product.name ||
-      stripeProduct.description !== description;
+      stripeProduct.description !== description ||
+      stripeProduct.metadata?.reference !== (product.reference || '');
 
     if (needsUpdate) {
       stripeProduct = await stripe.products.update(product.stripeProductId, {
         name: product.name,
         description,
         images: imageUrl ? [imageUrl] : undefined,
+        metadata: {
+          strapiId: product.documentId || product.id.toString(),
+          strapiSlug: product.slug || '',
+          "Référence": product.reference || '',
+        },
       });
       console.log(`🔄 Produit mis à jour: "${product.name}"`);
       stats.updated++;

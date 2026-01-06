@@ -92,6 +92,7 @@ export default {
         metadata: {
           strapiId: result.documentId || result.id.toString(),
           strapiSlug: result.slug || '',
+          "Référence": result.reference || '',
         },
       });
 
@@ -170,6 +171,7 @@ export default {
         metadata: {
           strapiId: result.documentId || result.id.toString(),
           strapiSlug: result.slug || '',
+          "Référence": result.reference || '',
         },
       });
 
